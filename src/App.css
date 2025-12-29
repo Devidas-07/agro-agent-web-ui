@@ -1,38 +1,26 @@
-.App {
-  text-align: center;
-}
+* { box-sizing: border-box; }
+body,html,#root { height: 100%; margin:0; font-family: Arial, Helvetica, sans-serif }
+.app-root { display:flex; height:100vh }
+.left { width: 280px; background: #fafafa }
+.main { flex:1; display:flex; flex-direction:column }
+.topbar { padding: 12px 18px; border-bottom:1px solid #eee; background: #fff }
+.content { padding: 18px; overflow:auto }
+.manager-detail .manager-header { display:flex; gap:16px; align-items:center }
+.section { margin-top:16px; padding:12px; border:1px solid #eee; border-radius:6px }
+.product-list { margin-top:8px; display:flex; flex-direction:column; gap:8px }
+.product-item { display:flex; justify-content:space-between; align-items:center; padding:8px; border:1px solid #f0f0f0; border-radius:6px }
+.product-item .p-left { display:flex; flex-direction:column }
+.product-form div, .sales-form div { margin-bottom:8px }
+.product-form input, .sales-form input, .sales-form select, .add-form input { padding:6px; width:100% }
+.product-form { margin-top:12px }
+.sales-history ul { list-style:none; padding-left:0 }
+.sale-item { padding:8px; border-bottom:1px solid #efefef }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
+/* Sidebar navigation */
+.sidebar-nav { min-width: 220px }
+.sidebar-nav .nav-link { padding: 10px 12px; border-radius:6px; color: #fff }
+.sidebar-nav .nav-link.active { background: rgba(0,0,0,0.2) }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@media (max-width: 768px) {
+  .d-flex > div:first-child { display:none }
 }
