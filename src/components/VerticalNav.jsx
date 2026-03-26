@@ -20,6 +20,9 @@ export default function VerticalNav() {
         <li className="nav-item mb-1">
           <NavLink to="/sales" className={linkClass}>Sales History</NavLink>
         </li>
+        <li className="nav-item mb-1">
+          <NavLink to="/expired-products" className={linkClass}>Expired Products</NavLink>
+        </li>
       </ul>
       <div className="mt-auto small text-white-50">© {new Date().getFullYear()} AgroAgent</div>
     </nav>

@@ -1,45 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { getProductsByManager, getProducts, createProduct, updateProduct, deleteProduct, assignProductToManager, getSalesByManager, getSales } from '../api';
-import ProductList from './ProductList';
+import { getProductsByManager, getProducts, createProduct, updateProduct, deleteProduct, assignProductToManager, getSalesByManager, recordSale } from '../api';
 import ProductForm from './ProductForm';
-
 import SalesForm from './SalesForm';
 import SalesHistory from './SalesHistory';
 
 export default function ManagerDetail({ manager }) {
-  const [products, setProducts] = useState([]);
+  const [assignedProducts, setAssignedProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [sales, setSales] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [sales, setSales] = useState([]);
 
   useEffect(() => {
-    if (manager) {
-      load();
-    }
+    if (manager) load();
   }, [manager]);
 
   const load = () => {
-    getProductsByManager(manager.id).then(res => setProducts(res.data)).catch(e => console.error(e));
+    getProductsByManager(manager.id).then(res => setAssignedProducts(res.data)).catch(e => console.error(e));
     getProducts().then(res => setAllProducts(res.data)).catch(e => console.error(e));
     getSalesByManager(manager.id).then(res => setSales(res.data)).catch(e => console.error(e));
   };
 
-  const addProduct = (p) => {
-    createProduct(p).then(() => { setShowForm(false); load(); }).catch(e => console.error(e));
-  };
-
-  const editProduct = (p) => {
-    setEditing(p);
-    setShowForm(true);
-  };
-
   const saveProduct = (p) => {
-    if (editing && editing.id) {
-      updateProduct(editing.id, p).then(() => { setEditing(null); setShowForm(false); load(); }).catch(e => console.error(e));
-    } else {
-      addProduct(p);
-    }
+    const action = editing?.id
+      ? updateProduct(editing.id, p)
+      : createProduct(p);
+    action.then(() => { setEditing(null); setShowForm(false); load(); }).catch(e => console.error(e));
   };
 
   const remove = (id) => {
@@ -48,40 +34,132 @@ export default function ManagerDetail({ manager }) {
   };
 
   const assign = (p) => {
-    const targetId = manager.id;
-    assignProductToManager(p.id, targetId).then(() => load()).catch(e => console.error(e));
+    assignProductToManager(p.id, manager.id)
+      .then(() => {
+        load();
+        alert(`Product '${p.name}' assigned successfully.`);
+      })
+      .catch(e => {
+        const msg = e.response?.data?.error || 'Failed to assign product.';
+        alert(msg);
+        load(); // reload to remove expired product from list
+      });
   };
 
   return (
     <div className="manager-detail">
-      {!manager && <div>Select a manager from the left.</div>}
-      {manager && (
-        <>
-          <div className="manager-header">
-            <h2>{manager.salesManagerName}</h2>
-            <div>Manager ID: {manager.id}</div>
-          </div>
+      <div className="manager-header mb-3">
+        <h4>{manager.salesManagerName}</h4>
+        <small className="text-muted">Manager ID: {manager.id}</small>
+      </div>
 
-          <div className="section">
-            <h3>Products</h3>
-            <button onClick={() => { setEditing(null); setShowForm(true); }}>Add product</button>
-            <ProductList products={products} onEdit={editProduct} onDelete={remove} onAssign={assign} />
-            {showForm && <ProductForm initial={editing || {}} onCancel={() => { setShowForm(false); setEditing(null); }} onSave={saveProduct} />}
-          </div>
+      {/* All Products — assign from here */}
+      <div className="section mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <h5>All Products</h5>
+          <button className="btn btn-sm btn-primary" onClick={() => { setEditing(null); setShowForm(s => !s); }}>
+            {showForm ? 'Cancel' : '+ Add Product'}
+          </button>
+        </div>
 
-          <div className="section">
-            <h3>Record Sale</h3>
-            <SalesForm products={allProducts} managers={[manager]} managersAll={[]} onRecord={(req) => {
-              // record using fetch in-line to avoid adding extra import
-              import('../api').then(api => api.recordSale(req)).then(() => { getSalesByManager(manager.id).then(res => setSales(res.data)); alert('Sale recorded'); }).catch(e => alert('Error: '+e));
-            }} />
+        {showForm && (
+          <div className="card mb-3">
+            <div className="card-body">
+              <ProductForm
+                initial={editing || {}}
+                onCancel={() => { setShowForm(false); setEditing(null); }}
+                onSave={saveProduct}
+              />
+            </div>
           </div>
+        )}
 
-          <div className="section">
-            <SalesHistory items={sales} />
-          </div>
-        </>
-      )}
+        <div className="table-responsive">
+          <table className="table table-sm table-bordered">
+            <thead className="table-light">
+              <tr>
+                <th>Name</th>
+                <th>MRP</th>
+                <th>Qty</th>
+                <th>Expire Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allProducts.length === 0 && (
+                <tr><td colSpan="5" className="text-muted">No products available.</td></tr>
+              )}
+              {allProducts.map(p => (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td>{p.mrp ?? '-'}</td>
+                  <td>{p.quantity}</td>
+                  <td className={p.expireDate && new Date(p.expireDate) < new Date() ? 'text-danger fw-bold' : ''}>
+                    {p.expireDate || '-'}
+                  </td>
+                  <td>
+                    <div className="btn-group">
+                      <button className="btn btn-sm btn-outline-success" onClick={() => assign(p)}>Assign</button>
+                      <button className="btn btn-sm btn-outline-primary" onClick={() => { setEditing(p); setShowForm(true); }}>Edit</button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => remove(p.id)}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Assigned Products */}
+      <div className="section mb-4">
+        <h5>Assigned Products</h5>
+        <div className="table-responsive">
+          <table className="table table-sm table-bordered">
+            <thead className="table-light">
+              <tr>
+                <th>Name</th>
+                <th>MRP</th>
+                <th>Qty</th>
+                <th>Expire Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assignedProducts.length === 0 && (
+                <tr><td colSpan="4" className="text-muted">No products assigned yet.</td></tr>
+              )}
+              {assignedProducts.map(p => (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td>{p.mrp ?? '-'}</td>
+                  <td>{p.quantity}</td>
+                  <td>{p.expireDate || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Record Sale */}
+      <div className="section mb-4">
+        <h5>Record Sale</h5>
+        <SalesForm
+          products={allProducts}
+          managers={[manager]}
+          managersAll={[]}
+          onRecord={(req) => {
+            recordSale(req)
+              .then(() => { getSalesByManager(manager.id).then(res => setSales(res.data)); alert('Sale recorded'); })
+              .catch(e => alert('Error: ' + e));
+          }}
+        />
+      </div>
+
+      {/* Sales History */}
+      <div className="section">
+        <SalesHistory items={sales} />
+      </div>
     </div>
   );
 }

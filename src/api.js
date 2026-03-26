@@ -3,7 +3,8 @@ import axios from 'axios';
 const base = process.env.REACT_APP_API_URL || '/api'; // use proxy in development or env var for production
 const api = axios.create({
   baseURL: base,
-  headers: { 'Content-Type': 'application/json' }
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true
 });
 
 // Sales Managers
@@ -32,5 +33,13 @@ export const getSalesByProduct = (productId) => api.get(`/sales/product/${produc
 export const getSale = (id) => api.get(`/sales/${id}`);
 export const updateSale = (id, req) => api.put(`/sales/${id}`, req);
 export const deleteSale = (id) => api.delete(`/sales/${id}`);
+
+// Expired Products
+export const getExpiredProducts = () => api.get('/expired-products');
+
+// Auth
+export const login = (username, password) => api.post('/auth/login', { username, password });
+export const logout = () => api.post('/auth/logout');
+export const authStatus = () => api.get('/auth/status');
 
 export default api;

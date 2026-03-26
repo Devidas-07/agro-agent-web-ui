@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 
-export default function TopBar() {
+export default function TopBar({ onLogout }) {
   const [open, setOpen] = useState(false);
+
+  const handleLogout = () => {
+    onLogout();
+    setOpen(false);
+  };
 
   return (
     <div className="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
@@ -20,7 +25,7 @@ export default function TopBar() {
               <a className="d-block px-3 py-2 text-dark" href="#/profile">Profile</a>
               <a className="d-block px-3 py-2 text-dark" href="#/settings">Settings</a>
               <div className="dropdown-divider" />
-              <a className="d-block px-3 py-2 text-dark" href="#/logout">Logout</a>
+              <button className="d-block px-3 py-2 text-dark border-0 bg-transparent w-100 text-start" onClick={handleLogout}>Logout</button>
             </div>
           )}
         </div>

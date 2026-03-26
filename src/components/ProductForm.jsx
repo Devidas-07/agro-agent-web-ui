@@ -9,6 +9,8 @@ export default function ProductForm({ initial = {}, onCancel, onSave }) {
     shareOfDirectBody: '',
     shareOfCompany: '',
     quantity: 0,
+    manufactureDate: '',
+    expireDate: '',
     ...initial
   });
 
@@ -27,6 +29,11 @@ export default function ProductForm({ initial = {}, onCancel, onSave }) {
     });
 
     payload.quantity = Number(payload.quantity || 0);
+
+    // handle dates
+    ['manufactureDate', 'expireDate'].forEach(k => {
+      if (payload[k] === '' || payload[k] === null || payload[k] === undefined) delete payload[k];
+    });
 
     onSave(payload);
   };
@@ -50,6 +57,17 @@ export default function ProductForm({ initial = {}, onCancel, onSave }) {
         <div className="col-md-4 mb-2">
           <label className="form-label">Quantity</label>
           <input className="form-control" type="number" value={form.quantity || 0} onChange={change('quantity')} />
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-md-6 mb-2">
+          <label className="form-label">Manufacture Date</label>
+          <input className="form-control" type="date" value={form.manufactureDate || ''} onChange={change('manufactureDate')} />
+        </div>
+        <div className="col-md-6 mb-2">
+          <label className="form-label">Expire Date</label>
+          <input className="form-control" type="date" value={form.expireDate || ''} onChange={change('expireDate')} />
         </div>
       </div>
 
