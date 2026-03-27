@@ -25,7 +25,7 @@ export default function ProductForm({ initial = {}, onCancel, onSave }) {
     // sanitize numeric/decimal fields: keep empty as undefined so backend will ignore
     ['mrp','directPrice','shareOfManager','shareOfDirectBody','shareOfCompany'].forEach(k => {
       if (payload[k] === '' || payload[k] === null || payload[k] === undefined) delete payload[k];
-      else payload[k] = payload[k]; // keep string/number as-is. Backend accepts numbers or numeric strings for BigDecimal
+      ; // keep string/number as-is. Backend accepts numbers or numeric strings for BigDecimal
     });
 
     payload.quantity = Number(payload.quantity || 0);

@@ -13,7 +13,7 @@ export default function ManagerDetail({ manager }) {
 
   useEffect(() => {
     if (manager) load();
-  }, [manager]);
+  }, [load]);
 
   const load = () => {
     getProductsByManager(manager.id).then(res => setAssignedProducts(res.data)).catch(e => console.error(e));
