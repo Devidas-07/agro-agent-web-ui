@@ -1,30 +1,47 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
-export default function VerticalNav() {
-  const linkClass = ({ isActive }) => 'nav-link text-white ' + (isActive ? 'active bg-dark' : '');
+const navItems = [
+  { to: '/',                  end: true,  icon: '🏠', label: 'Dashboard'        },
+  { to: '/products',          end: false, icon: '🌱', label: 'Products'          },
+  { to: '/salesmanagers',     end: false, icon: '👥', label: 'Sales Managers'    },
+  { to: '/sales',             end: false, icon: '📊', label: 'Sales History'     },
+  { to: '/expired-products',  end: false, icon: '⚠️', label: 'Expired Products'  },
+];
 
+export default function VerticalNav() {
   return (
-    <nav className="d-flex flex-column vh-100 p-3 bg-primary text-white sidebar-nav">
-      <h3 className="text-white">AgroAgent</h3>
-      <ul className="nav nav-pills flex-column mt-3">
-        <li className="nav-item mb-1">
-          <NavLink to="/" end className={linkClass}>Dashboard</NavLink>
-        </li>
-        <li className="nav-item mb-1">
-          <NavLink to="/products" className={linkClass}>Products</NavLink>
-        </li>
-        <li className="nav-item mb-1">
-          <NavLink to="/salesmanagers" className={linkClass}>Sales Managers</NavLink>
-        </li>
-        <li className="nav-item mb-1">
-          <NavLink to="/sales" className={linkClass}>Sales History</NavLink>
-        </li>
-        <li className="nav-item mb-1">
-          <NavLink to="/expired-products" className={linkClass}>Expired Products</NavLink>
-        </li>
+    <nav className="d-flex flex-column vh-100 p-3 sidebar-nav">
+      {/* Brand */}
+      <div className="sidebar-brand">
+        <span className="sidebar-brand-icon">🌾</span>
+        <div>
+          <div className="sidebar-brand-text">AgroAgent</div>
+          <div className="sidebar-brand-sub">Admin Portal</div>
+        </div>
+      </div>
+
+      {/* Nav links */}
+      <ul className="nav flex-column mt-2 flex-grow-1">
+        {navItems.map(({ to, end, icon, label }) => (
+          <li className="nav-item" key={to}>
+            <NavLink
+              to={to}
+              end={end}
+              className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}
+            >
+              <span className="nav-icon">{icon}</span>
+              {label}
+            </NavLink>
+          </li>
+        ))}
       </ul>
-      <div className="mt-auto small text-white-50">© {new Date().getFullYear()} AgroAgent</div>
+
+      {/* Footer */}
+      <div className="sidebar-footer">
+        🌿 © {new Date().getFullYear()} AgroAgent<br />
+        All rights reserved
+      </div>
     </nav>
   );
 }

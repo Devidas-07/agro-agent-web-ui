@@ -1,44 +1,47 @@
-.sidebar {
-  width: 260px;
-  border-right: 1px solid #ddd;
-  padding: 12px;
-  box-sizing: border-box;
+.manager-sidebar {
+  width: 270px;
+  min-width: 270px;
 }
 .manager-list {
-  max-height: 60vh;
-  overflow: auto;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 2px;
 }
-.manager-item {
+.add-manager-form {
   display: flex;
-  align-items: center;
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
   gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e8f0e0;
 }
-.manager-item:hover { background:#f2f2f2 }
-.manager-item.selected { background:#e6f7ff }
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #1976d2;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
+.add-manager-form input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1.5px solid #d1e8d1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #2d3a1e;
+  background: #fafff8;
+  transition: border-color 0.2s;
 }
-.meta { flex: 1 }
-.name { font-weight: 600 }
-.sub { font-size: 12px; color:#666 }
-.del {
-  background: transparent;
+.add-manager-form input:focus {
+  outline: none;
+  border-color: #40916c;
+  box-shadow: 0 0 0 3px rgba(64,145,108,0.12);
+}
+.add-manager-form button {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #2d6a4f, #40916c);
+  color: #fff;
   border: none;
-  color: #a00;
-  font-weight: bold;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
-.add-form { display:flex; gap:6px; margin-top:12px }
-.add-form input { flex:1; padding:6px }
-.add-form button { padding:6px 8px }
+.add-manager-form button:hover {
+  background: linear-gradient(135deg, #1b4332, #2d6a4f);
+}

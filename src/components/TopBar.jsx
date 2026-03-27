@@ -1,31 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export default function TopBar({ onLogout }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef(null);
 
-  const handleLogout = () => {
-    onLogout();
-    setOpen(false);
-  };
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <div className="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
-      <h4 className="mb-0">Admin Dashboard</h4>
-      <div className="d-flex align-items-center position-relative">
-        <div className="me-3 text-end d-none d-md-block">
-          <div className="fw-bold">Admin</div>
-          <div className="text-muted small">admin@agro.com</div>
+    <div className="topbar d-flex justify-content-between align-items-center">
+      <div>
+        <div className="topbar-title">🌾 AgroAgent Dashboard</div>
+        <div className="topbar-subtitle">{dateStr}</div>
+      </div>
+
+      <div className="d-flex align-items-center gap-3">
+        <div className="text-end d-none d-md-block">
+          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1b4332' }}>Admin</div>
+          <div style={{ fontSize: '0.75rem', color: '#74a57f' }}>admin@agroagent.com</div>
         </div>
-        <div>
-          <button className="btn btn-secondary rounded-circle" style={{width:44, height:44}} onClick={() => setOpen(s => !s)}>
-            A
-          </button>
+
+        <div style={{ position: 'relative' }} ref={ref}>
+          <button className="avatar-btn" onClick={() => setOpen(s => !s)}>A</button>
+
           {open && (
-            <div className="position-absolute bg-white shadow-sm rounded mt-2" style={{right:0, zIndex:1000}}>
-              <a className="d-block px-3 py-2 text-dark" href="#/profile">Profile</a>
-              <a className="d-block px-3 py-2 text-dark" href="#/settings">Settings</a>
+            <div className="dropdown-menu-custom">
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8f0e0', background: '#f4f7f0' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#1b4332' }}>Admin User</div>
+                <div style={{ fontSize: '0.75rem', color: '#74a57f' }}>Administrator</div>
+              </div>
               <div className="dropdown-divider" />
-              <button className="d-block px-3 py-2 text-dark border-0 bg-transparent w-100 text-start" onClick={handleLogout}>Logout</button>
+              <button onClick={() => { onLogout(); setOpen(false); }}>
+                🚪 Logout
+              </button>
             </div>
           )}
         </div>

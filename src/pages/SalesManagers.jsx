@@ -7,16 +7,31 @@ export default function SalesManagers() {
 
   return (
     <div>
-      <h3>Sales Managers</h3>
-      <div className="d-flex gap-3">
-        <div style={{ minWidth: 260 }}>
-          <Sidebar onSelect={setSelectedManager} selectedId={selectedManager?.id} />
+      <div className="page-header">
+        <div className="page-header-icon" style={{ background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)' }}>👥</div>
+        <div>
+          <h3>Sales Managers</h3>
+          <p>Manage field agents and assign products</p>
         </div>
-        <div className="flex-grow-1">
-          {selectedManager
-            ? <ManagerDetail manager={selectedManager} />
-            : <div className="text-muted mt-3">Select a manager from the left to view details.</div>
-          }
+      </div>
+
+      <div className="d-flex gap-3 align-items-start">
+        <Sidebar onSelect={setSelectedManager} selectedId={selectedManager?.id} />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {selectedManager ? (
+            <ManagerDetail manager={selectedManager} />
+          ) : (
+            <div className="agro-card">
+              <div style={{ padding: '60px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '16px' }}>👈</div>
+                <h5 style={{ color: '#1b4332', fontWeight: 600 }}>Select a Manager</h5>
+                <p style={{ color: '#74a57f', fontSize: '0.88rem' }}>
+                  Choose a sales manager from the left panel to view their details, assign products, and track sales.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

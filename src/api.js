@@ -36,6 +36,7 @@ export const deleteSale = (id) => api.delete(`/sales/${id}`);
 
 // Expired Products
 export const getExpiredProducts = () => api.get('/expired-products');
+export const getExpiredFromProducts = () => api.get('/products/expired');
 
 // Auth
 export const login = (username, password) => api.post('/auth/login', { username, password });
