@@ -1,132 +1,237 @@
 import React, { useEffect, useState } from 'react';
 import SalesHistory from '../components/SalesHistory';
 import SalesForm from '../components/SalesForm';
-import { getProducts, getManagers, recordSale, getSales, getSalesByManager, getSalesByProduct, getSale, updateSale, deleteSale } from '../api';
+import { getProducts, getManagers, recordSale, getSales, getSalesByManager, updateSale, deleteSale } from '../api';
 
 export default function SalesHistoryPage() {
-  const [products, setProducts] = useState([]);
-  const [managers, setManagers] = useState([]);
-  const [sales, setSales] = useState([]);
-  const [filter, setFilter] = useState({ productId: '', managerId: '' });
-  const [selected, setSelected] = useState(null);
-  const [editing, setEditing] = useState(null);
-  const [singleId, setSingleId] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts]     = useState([]);
+  const [managers, setManagers]     = useState([]);
+  const [sales, setSales]           = useState([]);
+  const [selectedMgr, setSelectedMgr] = useState(null); // full manager object
+  const [editing, setEditing]       = useState(null);
+  const [loading, setLoading]       = useState(false);
+  const [showForm, setShowForm]     = useState(false);
 
   useEffect(() => {
-    loadProducts();
-    loadManagers();
-    loadAllSales();
+    getProducts().then(r => setProducts(r.data || [])).catch(console.error);
+    getManagers().then(r => setManagers(r.data || [])).catch(console.error);
+    loadAll();
   }, []);
 
-  const loadProducts = async () => {
-    try { const res = await getProducts(); setProducts(res.data || []); } catch (e) { console.error(e); }
-  };
-  const loadManagers = async () => {
-    try { const res = await getManagers(); setManagers(res.data || []); } catch (e) { console.error(e); }
-  };
-  const loadAllSales = async () => {
-    try { setLoading(true); const res = await getSales(); setSales(res.data || []); setLoading(false); } catch (e) { setLoading(false); console.error(e); }
+  const loadAll = async () => {
+    setLoading(true);
+    try { const r = await getSales(); setSales(r.data || []); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  const applyFilter = async () => {
-    try {
-      setLoading(true);
-      if (filter.managerId) {
-        const res = await getSalesByManager(filter.managerId);
-        setSales(res.data || []);
-      } else if (filter.productId) {
-        const res = await getSalesByProduct(filter.productId);
-        setSales(res.data || []);
-      } else {
-        await loadAllSales();
-      }
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+  const loadByManager = async (mgr) => {
+    setLoading(true);
+    try { const r = await getSalesByManager(mgr.id); setSales(r.data || []); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const handleManagerSelect = (e) => {
+    const id = e.target.value;
+    if (!id) { setSelectedMgr(null); loadAll(); return; }
+    const mgr = managers.find(m => String(m.id) === String(id));
+    setSelectedMgr(mgr);
+    loadByManager(mgr);
   };
 
   const handleRecord = async (req) => {
-    try { await recordSale(req); setEditing(null); setSelected(null); await applyFilter(); } catch (e) { console.error(e); alert('Failed to record sale: '+(e?.response?.data || e.message)); }
+    try {
+      await recordSale(req);
+      setEditing(null);
+      setShowForm(false);
+      selectedMgr ? loadByManager(selectedMgr) : loadAll();
+      alert('Sale recorded successfully!');
+    } catch (e) { alert('Failed to record sale: ' + (e?.response?.data || e.message)); }
   };
+
   const handleUpdate = async (id, req) => {
-    try { await updateSale(id, req); setEditing(null); setSelected(null); await applyFilter(); } catch (e) { console.error(e); alert('Failed to update sale'); }
+    try {
+      await updateSale(id, req);
+      setEditing(null);
+      setShowForm(false);
+      selectedMgr ? loadByManager(selectedMgr) : loadAll();
+    } catch (e) { alert('Failed to update sale'); }
   };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete sale?')) return;
-    try { await deleteSale(id); if (selected && selected.id === id) setSelected(null); await applyFilter(); } catch (e) { console.error(e); alert('Failed to delete sale'); }
+    if (!window.confirm('Delete this sale record?')) return;
+    try {
+      await deleteSale(id);
+      selectedMgr ? loadByManager(selectedMgr) : loadAll();
+    } catch (e) { alert('Failed to delete sale'); }
   };
 
-  const handleView = (s) => { setSelected(s); };
-  const handleEdit = (s) => { setEditing({ id: s.id, productId: s.productId, salesManagerId: s.salesManagerId, quantity: s.quantity }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const handleEdit = (s) => {
+    setEditing({ id: s.id, productId: s.productId, salesManagerId: s.salesManagerId, quantity: s.quantity });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  const fetchById = async () => {
-    if (!singleId) return;
-    try { setLoading(true); const res = await getSale(singleId); setSales([res.data]); setSelected(res.data); setLoading(false); } catch (e) { setLoading(false); alert('Sale not found'); }
+  // profit totals for filtered sales
+  const profitTotals = sales.reduce((acc, s) => {
+    const mrp = Number(s.productMrp ?? 0);
+    const qty = Number(s.quantity ?? 0);
+    acc.manager    += (Number(s.productShareOfManager    ?? 0) / 100) * mrp * qty;
+    acc.directBody += (Number(s.productShareOfDirectBody ?? 0) / 100) * mrp * qty;
+    acc.company    += (Number(s.productShareOfCompany    ?? 0) / 100) * mrp * qty;
+    return acc;
+  }, { manager: 0, directBody: 0, company: 0 });
+
+  const fmt = (v) => {
+    try { return Number(v).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }); }
+    catch { return '₹' + Number(v).toFixed(2); }
   };
 
   return (
     <div>
-      <h3>Sales History</h3>
-      <div className="row">
-        <div className="col-lg-6">
-          <div className="card mb-3">
-            <div className="card-body">
-              <SalesForm
-                products={products}
-                managers={managers}
-                initial={editing}
-                onRecord={handleRecord}
-                onUpdate={handleUpdate}
-                onCancel={() => setEditing(null)}
-              />
-              <hr />
-              <div className="mb-2">
-                <label>Filter by Manager</label>
-                <select value={filter.managerId} onChange={e => setFilter({ ...filter, managerId: e.target.value, productId: '' })}>
-                  <option value="">-- all --</option>
-                  {managers.map(m => <option key={m.id} value={m.id}>{m.salesManagerName}</option>)}
-                </select>
-                <label style={{ marginLeft: '8px' }}>Filter by Product</label>
-                <select value={filter.productId} onChange={e => setFilter({ ...filter, productId: e.target.value, managerId: '' })}>
-                  <option value="">-- all --</option>
-                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <button onClick={applyFilter} style={{ marginLeft: '8px' }}>Apply</button>
-                <button onClick={loadAllSales} style={{ marginLeft: '8px' }}>Show all</button>
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="page-header-icon" style={{ background: 'linear-gradient(135deg, #fef3c7, #fde68a)' }}>📊</div>
+        <div>
+          <h3>Sales History</h3>
+          <p>Track and manage all sales transactions</p>
+        </div>
+        <div className="ms-auto">
+          <button className="btn-agro" onClick={() => { setEditing(null); setShowForm(s => !s); }}>
+            {showForm ? '✕ Close Form' : '+ Record Sale'}
+          </button>
+        </div>
+      </div>
+
+      {/* Record / Edit Sale Form */}
+      {showForm && (
+        <div className="agro-card mb-4">
+          <div className="agro-card-header">
+            {editing ? '✏️ Edit Sale Record' : '📝 Record New Sale'}
+          </div>
+          <div style={{ padding: '20px' }}>
+            <SalesForm
+              products={products}
+              managers={managers}
+              initial={editing}
+              onRecord={handleRecord}
+              onUpdate={handleUpdate}
+              onCancel={() => { setEditing(null); setShowForm(false); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Filter Bar */}
+      <div className="agro-card mb-4">
+        <div className="agro-card-header">🔍 Filter Sales</div>
+        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '220px' }}>
+            <label className="agro-label">Filter by Manager</label>
+            <select
+              className="agro-input"
+              value={selectedMgr?.id ?? ''}
+              onChange={handleManagerSelect}
+            >
+              <option value="">— All Managers —</option>
+              {managers.map(m => (
+                <option key={m.id} value={m.id}>{m.salesManagerName}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedMgr && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #2d6a4f, #40916c)',
+                color: '#fff', fontWeight: 700, fontSize: '1rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {selectedMgr.salesManagerName.charAt(0).toUpperCase()}
               </div>
               <div>
-                <label>Load by ID</label>
-                <input value={singleId} onChange={e => setSingleId(e.target.value)} placeholder="sale id" />
-                <button onClick={fetchById}>Load</button>
+                <div style={{ fontWeight: 600, color: '#1b4332', fontSize: '0.9rem' }}>{selectedMgr.salesManagerName}</div>
+                <div style={{ fontSize: '0.75rem', color: '#74a57f' }}>ID: {selectedMgr.id}</div>
               </div>
+            </div>
+          )}
+
+          {selectedMgr && (
+            <button
+              className="btn-agro-outline"
+              style={{ marginTop: '20px' }}
+              onClick={() => { setSelectedMgr(null); loadAll(); }}
+            >
+              ✕ Clear Filter
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Manager Profile Card — shown only when filtered */}
+      {selectedMgr && (
+        <div style={{
+          background: 'linear-gradient(135deg, #1b4332, #2d6a4f)',
+          borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+          color: '#fff', display: 'flex', alignItems: 'center', gap: '20px',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{
+            width: '64px', height: '64px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.8rem', fontWeight: 700, flexShrink: 0,
+          }}>
+            {selectedMgr.salesManagerName.charAt(0).toUpperCase()}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{selectedMgr.salesManagerName}</div>
+            <div style={{ opacity: 0.75, fontSize: '0.85rem' }}>Sales Manager · ID: {selectedMgr.id}</div>
+          </div>
+
+          {/* Profit summary for this manager */}
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Mgr Profit',    value: profitTotals.manager,    icon: '👤' },
+              { label: 'Direct Body',   value: profitTotals.directBody,  icon: '🤝' },
+              { label: 'Company',       value: profitTotals.company,     icon: '🏢' },
+            ].map(pc => (
+              <div key={pc.label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {pc.icon} {pc.label}
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{fmt(pc.value)}</div>
+              </div>
+            ))}
+            <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '24px' }}>
+              <div style={{ fontSize: '0.72rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📋 Records</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{sales.length}</div>
             </div>
           </div>
         </div>
-        <div className="col-lg-6">
-          <div className="card mb-3">
-            <div className="card-body">
-              {loading && <div>Loading...</div>}
-              <SalesHistory items={sales} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
-              {selected && (
-                <div className="card mt-3">
-                  <div className="card-body">
-                    <h5>Sale Details</h5>
-                    <div><strong>ID:</strong> {selected.id}</div>
-                    <div><strong>Product:</strong> {selected.productName} (id: {selected.productId})</div>
-                    <div><strong>Manager:</strong> {selected.salesManagerName} (id: {selected.salesManagerId})</div>
-                    <div><strong>Quantity:</strong> {selected.quantity}</div>
-                    <div><strong>Product stock:</strong> {selected.productQuantity}</div>
-                    <div><strong>MRP:</strong> {selected.productMrp}</div>
-                    <div><strong>Recorded at:</strong> {selected.createdAt && new Date(selected.createdAt).toLocaleString()}</div>
-                    <div style={{ marginTop: 8 }}>
-                      <button onClick={() => setEditing({ id: selected.id, productId: selected.productId, salesManagerId: selected.salesManagerId, quantity: selected.quantity })}>Edit</button>
-                      <button onClick={() => handleDelete(selected.id)} style={{ marginLeft: 8 }}>Delete</button>
-                      <button onClick={() => setSelected(null)} style={{ marginLeft: 8 }}>Close</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      )}
+
+      {/* Sales Table */}
+      <div className="agro-card">
+        <div className="agro-card-header">
+          {selectedMgr ? `📋 Sales by ${selectedMgr.salesManagerName}` : '📋 All Sales Records'}
+          <span style={{ marginLeft: 'auto', background: '#dcfce7', color: '#166534', padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem' }}>
+            {sales.length} record{sales.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <div style={{ padding: '8px 0' }}>
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#74a57f' }}>Loading sales...</div>
+          ) : (
+            <SalesHistory
+              items={sales}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              showManager={!selectedMgr}
+            />
+          )}
         </div>
       </div>
     </div>
