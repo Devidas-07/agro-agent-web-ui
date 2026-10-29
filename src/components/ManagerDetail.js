@@ -11,15 +11,16 @@ export default function ManagerDetail({ manager }) {
   const [showForm, setShowForm] = useState(false);
   const [sales, setSales] = useState([]);
 
-  useEffect(() => {
-    if (manager) load();
-  }, [load]);
-
   const load = () => {
     getProductsByManager(manager.id).then(res => setAssignedProducts(res.data)).catch(e => console.error(e));
     getProducts().then(res => setAllProducts(res.data)).catch(e => console.error(e));
     getSalesByManager(manager.id).then(res => setSales(res.data)).catch(e => console.error(e));
   };
+
+  useEffect(() => {
+    if (manager) load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manager]);
 
   const saveProduct = (p) => {
     const action = editing?.id
